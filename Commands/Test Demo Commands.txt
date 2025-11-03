@@ -28,3 +28,13 @@
   Disable cleaning entirely (compare before/after):
 
   python demo.py --im_path=./demo/BedroomFloorPlan.png --save_dxf --no_clean --no_display
+
+     # Generate STL with default heights + show viewer
+     python demo.py --im_path=floor.png --save_stl --show_3d
+
+     # Custom heights + save HTML viewer
+     python demo.py --im_path=floor.png --save_stl --wall_height=3.0 --export_3d_html=./output/viewer.html
+
+     # Both DXF (2D) and STL (3D) for complete workflow
+     python demo.py --im_path=floor.png --save_dxf --save_stl --show_3d --no_display
+

@@ -46,6 +46,22 @@ parser.add_argument('--no_clean', action='store_true',
 parser.add_argument('--border_margin', type=int, default=10,
                     help='Pixels from edge to filter as artifacts (0 to disable).')
 
+# STL 3D model parameters
+parser.add_argument('--save_stl', action='store_true',
+                    help='Export 3D model to STL format.')
+parser.add_argument('--stl_output', type=str, default='./output/floorplan.stl',
+                    help='Output STL file path.')
+parser.add_argument('--wall_height', type=float, default=2.7,
+                    help='Wall height in meters (default: 2.7m for standard residential).')
+parser.add_argument('--no_floor', action='store_true',
+                    help='Exclude floor from 3D model.')
+parser.add_argument('--no_ceiling', action='store_true',
+                    help='Exclude ceiling from 3D model.')
+parser.add_argument('--show_3d', action='store_true',
+                    help='Show interactive 3D visualization in browser.')
+parser.add_argument('--export_3d_html', type=str, default=None,
+                    help='Export interactive 3D viewer as HTML file.')
+
 # color map
 floorplan_map = {
 	0: [255,255,255], # background
@@ -138,6 +154,52 @@ def main(args):
 						  min_room_area=args.min_room_area,
 						  clean_artifacts=not args.no_clean,
 						  border_margin=args.border_margin)
+
+		# Export to STL if requested
+		if args.save_stl:
+			from export_stl import export_to_stl, visualize_stl_interactive, visualize_stl_from_data
+
+			# Create output directory if needed
+			output_dir = os.path.dirname(args.stl_output)
+			if output_dir and not os.path.exists(output_dir):
+				os.makedirs(output_dir)
+
+			print(f"\nExporting to STL 3D format...")
+			print(f"  Scale: {args.scale}")
+			print(f"  Wall height: {args.wall_height}m")
+			print(f"  Output: {args.stl_output}")
+
+			export_to_stl(floorplan, args.stl_output, scale=args.scale,
+						  wall_height=args.wall_height,
+						  min_wall_area=args.min_wall_area,
+						  min_opening_area=args.min_opening_area,
+						  min_room_area=args.min_room_area,
+						  clean_artifacts=not args.no_clean,
+						  border_margin=args.border_margin,
+						  include_floor=not args.no_floor,
+						  include_ceiling=not args.no_ceiling)
+
+		# Show 3D visualization if requested
+		if args.show_3d or args.export_3d_html:
+			from export_stl import visualize_stl_interactive, visualize_stl_from_data
+
+			print(f"\nGenerating interactive 3D visualization...")
+
+			if args.save_stl and os.path.exists(args.stl_output):
+				# Visualize from saved STL file
+				visualize_stl_interactive(args.stl_output,
+										  html_output=args.export_3d_html,
+										  auto_open=args.show_3d)
+			else:
+				# Generate visualization directly from mask
+				visualize_stl_from_data(floorplan, scale=args.scale,
+										wall_height=args.wall_height,
+										min_wall_area=args.min_wall_area,
+										min_room_area=args.min_room_area,
+										clean_artifacts=not args.no_clean,
+										border_margin=args.border_margin,
+										html_output=args.export_3d_html,
+										auto_open=args.show_3d)
 
 		# Visualization
 		if not args.no_display:
