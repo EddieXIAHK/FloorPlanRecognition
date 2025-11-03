@@ -9,3 +9,22 @@
   With different scale (e.g., if 1 pixel = 0.02 meters):
 
   python demo.py --im_path=./demo/BedroomFloorPlan.png --save_dxf --dxf_output=./output/bedroom_floorplan.dxf --scale=0.02
+
+
+  Test commands:
+
+  Basic test with default cleaning:
+
+  python demo.py --im_path=./demo/BedroomFloorPlan.png --save_dxf --no_display
+
+  Aggressive cleaning (remove more artifacts):
+
+  python demo.py --im_path=./demo/BedroomFloorPlan.png --save_dxf --min_wall_area=300 --min_room_area=800 --border_margin=15 --no_display
+
+  Lenient cleaning (keep more features):
+
+  python demo.py --im_path=./demo/BedroomFloorPlan.png --save_dxf --min_wall_area=100 --min_room_area=300 --border_margin=5 --no_display
+
+  Disable cleaning entirely (compare before/after):
+
+  python demo.py --im_path=./demo/BedroomFloorPlan.png --save_dxf --no_clean --no_display

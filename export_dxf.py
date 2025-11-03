@@ -46,13 +46,92 @@ def simplify_contours(contours, epsilon_factor=0.005):
     return simplified
 
 
-def extract_wall_lines(floorplan_mask, min_area=50):
+def clean_mask(mask, min_size=500, morph_kernel_size=7):
+    """
+    Clean mask by removing small artifacts and filling gaps.
+
+    Args:
+        mask: Binary mask (0 or 255)
+        min_size: Minimum component size to keep (in pixels)
+        morph_kernel_size: Size of morphological kernel for gap filling
+
+    Returns:
+        Cleaned binary mask
+    """
+    # Apply morphological closing to fill gaps
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (morph_kernel_size, morph_kernel_size))
+    closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+    # Apply morphological opening to remove small noise
+    kernel_small = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_small)
+
+    # Remove small connected components
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(opened, connectivity=8)
+
+    # Find largest component (background is label 0)
+    if num_labels <= 1:
+        return opened
+
+    # Get areas of all components (excluding background)
+    areas = stats[1:, cv2.CC_STAT_AREA]
+    largest_label = np.argmax(areas) + 1
+
+    # Create clean mask keeping only large components
+    clean = np.zeros_like(mask)
+    for label in range(1, num_labels):
+        if stats[label, cv2.CC_STAT_AREA] >= min_size:
+            clean[labels == label] = 255
+
+    # If nothing survived, keep the largest component
+    if np.sum(clean) == 0:
+        clean[labels == largest_label] = 255
+
+    return clean
+
+
+def filter_edge_contours(contours, image_shape, border_margin=10):
+    """
+    Filter out contours that touch the image edges (likely artifacts).
+
+    Args:
+        contours: List of contours
+        image_shape: Shape of the image (height, width)
+        border_margin: Pixels from edge to consider as border
+
+    Returns:
+        Filtered list of contours
+    """
+    h, w = image_shape[:2]
+    filtered = []
+
+    for contour in contours:
+        # Check if any point is near the border
+        x_coords = contour[:, 0, 0]
+        y_coords = contour[:, 0, 1]
+
+        near_border = (
+            np.any(x_coords < border_margin) or
+            np.any(x_coords > w - border_margin) or
+            np.any(y_coords < border_margin) or
+            np.any(y_coords > h - border_margin)
+        )
+
+        if not near_border:
+            filtered.append(contour)
+
+    return filtered
+
+
+def extract_wall_lines(floorplan_mask, min_area=200, clean_artifacts=True, border_margin=10):
     """
     Extract wall boundaries as polylines.
 
     Args:
         floorplan_mask: 2D numpy array with label encoding
         min_area: Minimum contour area to include
+        clean_artifacts: Whether to apply cleaning operations
+        border_margin: Margin to filter edge artifacts
 
     Returns:
         List of wall contours (simplified polylines)
@@ -60,15 +139,23 @@ def extract_wall_lines(floorplan_mask, min_area=50):
     # Extract wall pixels (label = 10)
     wall_mask = (floorplan_mask == 10).astype(np.uint8) * 255
 
+    # Clean mask to fill gaps and remove noise
+    if clean_artifacts:
+        wall_mask = clean_mask(wall_mask, min_size=min_area, morph_kernel_size=7)
+
     # Find contours
     contours, _ = cv2.findContours(wall_mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Filter by area and simplify
+    # Filter by area
     wall_contours = []
     for contour in contours:
         area = cv2.contourArea(contour)
         if area >= min_area:
             wall_contours.append(contour)
+
+    # Filter edge artifacts
+    if clean_artifacts and border_margin > 0:
+        wall_contours = filter_edge_contours(wall_contours, floorplan_mask.shape, border_margin)
 
     # Simplify contours
     wall_contours = simplify_contours(wall_contours, epsilon_factor=0.003)
@@ -76,13 +163,15 @@ def extract_wall_lines(floorplan_mask, min_area=50):
     return wall_contours
 
 
-def extract_openings(floorplan_mask, min_area=20):
+def extract_openings(floorplan_mask, min_area=100, clean_artifacts=True, border_margin=10):
     """
     Extract door/window openings as polylines.
 
     Args:
         floorplan_mask: 2D numpy array with label encoding
         min_area: Minimum contour area to include
+        clean_artifacts: Whether to apply cleaning operations
+        border_margin: Margin to filter edge artifacts
 
     Returns:
         List of opening contours (simplified polylines)
@@ -90,15 +179,23 @@ def extract_openings(floorplan_mask, min_area=20):
     # Extract opening pixels (label = 9)
     opening_mask = (floorplan_mask == 9).astype(np.uint8) * 255
 
+    # Clean mask to remove noise
+    if clean_artifacts:
+        opening_mask = clean_mask(opening_mask, min_size=min_area, morph_kernel_size=5)
+
     # Find contours
     contours, _ = cv2.findContours(opening_mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Filter by area and simplify
+    # Filter by area
     opening_contours = []
     for contour in contours:
         area = cv2.contourArea(contour)
         if area >= min_area:
             opening_contours.append(contour)
+
+    # Filter edge artifacts
+    if clean_artifacts and border_margin > 0:
+        opening_contours = filter_edge_contours(opening_contours, floorplan_mask.shape, border_margin)
 
     # Simplify contours
     opening_contours = simplify_contours(opening_contours, epsilon_factor=0.005)
@@ -106,16 +203,18 @@ def extract_openings(floorplan_mask, min_area=20):
     return opening_contours
 
 
-def extract_room_polygons(floorplan_mask, min_area=100):
+def extract_room_polygons(floorplan_mask, min_area=500, clean_artifacts=True, border_margin=10):
     """
     Extract room regions as closed polygons with room type labels.
 
     Args:
         floorplan_mask: 2D numpy array with label encoding
         min_area: Minimum room area to include
+        clean_artifacts: Whether to apply cleaning operations
+        border_margin: Margin to filter edge artifacts
 
     Returns:
-        List of tuples: (contour, room_type_id, room_type_name)
+        List of room dictionaries with contour and metadata
     """
     rooms = []
 
@@ -125,10 +224,14 @@ def extract_room_polygons(floorplan_mask, min_area=100):
             continue
 
         # Create mask for this room type
-        room_mask = (floorplan_mask == room_id).astype(np.uint8)
+        room_mask = (floorplan_mask == room_id).astype(np.uint8) * 255
+
+        # Clean mask if requested
+        if clean_artifacts:
+            room_mask = clean_mask(room_mask, min_size=min_area, morph_kernel_size=5)
 
         # Find connected components (separate rooms of same type)
-        labeled, num_features = ndimage.label(room_mask)
+        labeled, num_features = ndimage.label(room_mask // 255)
 
         for component_id in range(1, num_features + 1):
             component_mask = (labeled == component_id).astype(np.uint8) * 255
@@ -141,6 +244,22 @@ def extract_room_polygons(floorplan_mask, min_area=100):
                 area = cv2.contourArea(contour)
 
                 if area >= min_area:
+                    # Check if it's an edge artifact
+                    if clean_artifacts and border_margin > 0:
+                        x_coords = contour[:, 0, 0]
+                        y_coords = contour[:, 0, 1]
+                        h, w = floorplan_mask.shape
+
+                        near_border = (
+                            np.any(x_coords < border_margin) or
+                            np.any(x_coords > w - border_margin) or
+                            np.any(y_coords < border_margin) or
+                            np.any(y_coords > h - border_margin)
+                        )
+
+                        if near_border:
+                            continue  # Skip edge artifacts
+
                     # Simplify contour
                     epsilon = 0.005 * cv2.arcLength(contour, True)
                     approx = cv2.approxPolyDP(contour, epsilon, True)
@@ -164,7 +283,9 @@ def extract_room_polygons(floorplan_mask, min_area=100):
     return rooms
 
 
-def export_to_dxf(floorplan_mask, output_path, scale=1.0, units='Pixels'):
+def export_to_dxf(floorplan_mask, output_path, scale=1.0, units='Pixels',
+                  min_wall_area=200, min_opening_area=100, min_room_area=500,
+                  clean_artifacts=True, border_margin=10):
     """
     Export floor plan to DXF format with layers and metadata.
 
@@ -173,16 +294,26 @@ def export_to_dxf(floorplan_mask, output_path, scale=1.0, units='Pixels'):
         output_path: Output DXF file path
         scale: Scale factor (e.g., pixels to meters conversion)
         units: Unit name for documentation (default: 'Pixels')
+        min_wall_area: Minimum wall segment area in pixels
+        min_opening_area: Minimum opening area in pixels
+        min_room_area: Minimum room area in pixels
+        clean_artifacts: Apply morphological cleaning and filtering
+        border_margin: Pixels from edge to filter as artifacts
 
     Returns:
         Path to saved DXF file
     """
     print(f"Extracting vectorized features from floor plan mask...")
+    print(f"  Cleaning artifacts: {clean_artifacts}")
+    print(f"  Min wall area: {min_wall_area}, Min opening area: {min_opening_area}, Min room area: {min_room_area}")
 
     # Extract geometric features
-    wall_contours = extract_wall_lines(floorplan_mask)
-    opening_contours = extract_openings(floorplan_mask)
-    room_polygons = extract_room_polygons(floorplan_mask)
+    wall_contours = extract_wall_lines(floorplan_mask, min_area=min_wall_area,
+                                       clean_artifacts=clean_artifacts, border_margin=border_margin)
+    opening_contours = extract_openings(floorplan_mask, min_area=min_opening_area,
+                                        clean_artifacts=clean_artifacts, border_margin=border_margin)
+    room_polygons = extract_room_polygons(floorplan_mask, min_area=min_room_area,
+                                          clean_artifacts=clean_artifacts, border_margin=border_margin)
 
     print(f"Found {len(wall_contours)} wall segments, {len(opening_contours)} openings, {len(room_polygons)} rooms")
 

@@ -34,6 +34,18 @@ parser.add_argument('--apply_postprocess', action='store_true',
 parser.add_argument('--no_display', action='store_true',
                     help='Skip matplotlib display (useful for batch processing).')
 
+# DXF cleaning parameters
+parser.add_argument('--min_wall_area', type=int, default=200,
+                    help='Minimum wall segment area in pixels (higher = fewer artifacts).')
+parser.add_argument('--min_opening_area', type=int, default=100,
+                    help='Minimum opening area in pixels.')
+parser.add_argument('--min_room_area', type=int, default=500,
+                    help='Minimum room area in pixels.')
+parser.add_argument('--no_clean', action='store_true',
+                    help='Disable artifact cleaning (keep all detected features).')
+parser.add_argument('--border_margin', type=int, default=10,
+                    help='Pixels from edge to filter as artifacts (0 to disable).')
+
 # color map
 floorplan_map = {
 	0: [255,255,255], # background
@@ -120,7 +132,12 @@ def main(args):
 			print(f"  Scale: {args.scale}")
 			print(f"  Output: {args.dxf_output}")
 
-			export_to_dxf(floorplan, args.dxf_output, scale=args.scale)
+			export_to_dxf(floorplan, args.dxf_output, scale=args.scale,
+						  min_wall_area=args.min_wall_area,
+						  min_opening_area=args.min_opening_area,
+						  min_room_area=args.min_room_area,
+						  clean_artifacts=not args.no_clean,
+						  border_margin=args.border_margin)
 
 		# Visualization
 		if not args.no_display:
