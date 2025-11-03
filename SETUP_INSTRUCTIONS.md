@@ -5,28 +5,68 @@ This document provides step-by-step instructions to set up your environment for 
 ## Prerequisites
 
 - **Windows 10/11** (version 1709 or later)
-- **Python 3.10** (3.7-3.10 supported, 3.10 recommended)
+- **Python 3.10** (REQUIRED - NOT 3.11 or newer!)
+  - TensorFlow 2.10 with DirectML only supports Python 3.7-3.10
+  - **Python 3.10.11 recommended** (latest 3.10.x release)
 - **AMD Radeon 780M GPU** (or any DirectX 12-compatible GPU)
 - **At least 8GB RAM** (16GB recommended)
 
+## ⚠️ CRITICAL: Python Version Check
+
+**Before proceeding, verify your Python version:**
+
+```bash
+python --version
+```
+
+**You MUST see:** `Python 3.10.x` (e.g., Python 3.10.11)
+
+**If you see Python 3.11, 3.12, or 3.13:**
+- TensorFlow 2.10 will NOT install
+- You MUST install Python 3.10 (see Step 1 below)
+
 ## Step 1: Install Python 3.10
+
+**If you already have Python 3.10.x, skip to Step 2.**
 
 If you don't have Python 3.10 installed:
 
-1. Download Python 3.10.x from https://www.python.org/downloads/
-2. During installation, check "Add Python to PATH"
+1. Download **Python 3.10.11** from: https://www.python.org/downloads/release/python-31011/
+   - Click "Windows installer (64-bit)" at the bottom
+2. During installation:
+   - ✅ Check "Add Python 3.10 to PATH"
+   - ✅ Choose "Install for all users" (optional but recommended)
 3. Verify installation:
    ```bash
    python --version
    ```
-   Should show: `Python 3.10.x`
+   Should show: `Python 3.10.11`
+
+### If You Have Multiple Python Versions
+
+If you have both Python 3.10 and 3.11+ installed, use the **Python Launcher** to select the correct version:
+
+```bash
+# Check available Python versions
+py -0
+
+# Use Python 3.10 specifically
+py -3.10 --version
+
+# Create virtual environment with Python 3.10
+py -3.10 -m venv venv_tf2
+```
 
 ## Step 2: Create Virtual Environment
 
 Open Command Prompt or PowerShell in the DeepFloorplan directory:
 
 ```bash
-# Create virtual environment
+# Create virtual environment with Python 3.10
+# If you have multiple Python versions, use:
+py -3.10 -m venv venv_tf2
+
+# OR if Python 3.10 is your only/default version:
 python -m venv venv_tf2
 
 # Activate virtual environment
@@ -41,6 +81,12 @@ source venv_tf2/Scripts/activate
 ```
 
 Your prompt should now show `(venv_tf2)` prefix.
+
+**Verify you're using Python 3.10 in the virtual environment:**
+```bash
+python --version
+# Should show: Python 3.10.11
+```
 
 ## Step 3: Upgrade pip
 

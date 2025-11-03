@@ -1,0 +1,96 @@
+# Virtual Environments
+venv_tf2/
+venv/
+env/
+venv_*
+.venv/
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Large Datasets
+dataset/annotations/
+dataset/newyork/
+dataset/*.tfrecords
+dataset/*.tfrecords.*
+
+# Model Weights and Checkpoints
+pretrained/*.data*
+pretrained/*.index
+pretrained/*.meta
+pretrained/checkpoint
+pretrained/*.ckpt*
+logs/
+log/
+
+# Generated Output Files
+out/
+outputs/
+results/
+*.out
+
+# Testing and temporary files
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+*.pot
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+
+# OS files
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Environment files
+.env
+.env.local
+
+# IntelliJ
+*.iml
+*.iws
+*.ipr
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json

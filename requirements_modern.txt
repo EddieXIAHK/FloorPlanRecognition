@@ -1,0 +1,23 @@
+# Alternative requirements for Python 3.11+ (EXPERIMENTAL)
+# DirectML support is uncertain with these versions
+
+# Latest TensorFlow (supports Python 3.9-3.12)
+tensorflow-cpu>=2.16.0
+
+# Try DirectML plugin (may or may not work with TF 2.16+)
+# tensorflow-directml-plugin
+# Note: DirectML plugin might not support TF 2.16+
+# You may need to train on CPU only with this setup
+
+# Image processing libraries
+imageio>=2.25.0
+scikit-image>=0.19.0
+Pillow>=9.3.0
+opencv-python>=4.7.0.0
+
+# Numerical computing
+numpy>=1.23.0
+matplotlib>=3.5.0
+
+# Optional: for better performance
+tqdm>=4.64.0
