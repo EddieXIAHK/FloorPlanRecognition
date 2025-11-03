@@ -1,0 +1,11 @@
+  Basic test (with visualization):
+
+  python demo.py --im_path=./demo/BedroomFloorPlan.png --save_dxf --dxf_output=./output/bedroom_floorplan.dxf --scale=0.05
+
+  Without visualization (faster):
+
+  python demo.py --im_path=./demo/BedroomFloorPlan.png --save_dxf --dxf_output=./output/bedroom_floorplan.dxf --scale=0.05 --no_display
+
+  With different scale (e.g., if 1 pixel = 0.02 meters):
+
+  python demo.py --im_path=./demo/BedroomFloorPlan.png --save_dxf --dxf_output=./output/bedroom_floorplan.dxf --scale=0.02

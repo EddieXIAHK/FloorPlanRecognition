@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(python demo.py:*)",
+      "Bash(venv_tf2Scriptsactivate)"
     ],
     "deny": [],
     "ask": []
